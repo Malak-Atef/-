@@ -26,15 +26,21 @@ const messaging = getMessaging(app);
 // الحصول على إذن المستخدم للإشعارات بعد تسجيل الدخول
 async function requestAndSaveToken(userId) {
     try {
-        const currentToken = await getToken(messaging, { vapidKey: "BLhZGEBgFbz-BwYLlEfFq7SlHsE30d5rhK0-wL7dK86h2Zl5nPPwkdAHL0bLiU_LzZW9hVEjl5XVvdfWieJ_kL0" });
-        if (currentToken) {
-            console.log('تم الحصول على رمز التسجيل:', currentToken);
+        // اطلب إذن المستخدم للإشعارات
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            const currentToken = await getToken(messaging, { vapidKey: "BLhZGEBgFbz-BwYLlEfFq7SlHsE30d5rhK0-wL7dK86h2Zl5nPPwkdAHL0bLiU_LzZW9hVEjl5XVvdfWieJ_kL0" });
+            if (currentToken) {
+                console.log('تم الحصول على رمز التسجيل:', currentToken);
 
-            // حفظ الرمز في Firestore
-            await setDoc(doc(db, "tokens", userId), { token: currentToken });
-            console.log("تم حفظ رمز التسجيل بنجاح في قاعدة البيانات");
+                // حفظ الرمز في Firestore
+                await setDoc(doc(db, "tokens", userId), { token: currentToken });
+                console.log("تم حفظ رمز التسجيل بنجاح في قاعدة البيانات");
+            } else {
+                console.warn('لم يتم توفير رمز التسجيل. تأكد من قبول المستخدم لتلقي الإشعارات.');
+            }
         } else {
-            console.warn('لم يتم توفير رمز التسجيل. تأكد من قبول المستخدم لتلقي الإشعارات.');
+            console.warn('تم رفض الإذن للإشعارات.');
         }
     } catch (err) {
         console.error('خطأ في جلب رمز التسجيل:', err);
@@ -49,14 +55,26 @@ onMessage(messaging, (payload) => {
 
 // تسجيل Service Worker
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('firebase-messaging-sw.js')
-    .then((registration) => {
+    navigator.serviceWorker.register('./firebase-messaging-sw.js')
+      .then((registration) => {
         console.log('Service Worker registered with scope:', registration.scope);
-    })
-    .catch((error) => {
+      })
+      .catch((error) => {
         console.error('Service Worker registration failed:', error);
-    });
+      });
 }
+
+// مراقبة حالة المصادقة
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        console.log('المستخدم مسجّل الدخول:', user.uid);
+        requestAndSaveToken(user.uid);
+    } else {
+        console.log('المستخدم غير مسجّل الدخول');
+    }
+});
+
+
 
 // تحميل الأسماء من Firestore إلى القائمة المنسدلة (صفحة تسجيل الدخول)
 async function loadUsernames() {

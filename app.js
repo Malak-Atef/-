@@ -50,12 +50,12 @@ onMessage(messaging, (payload) => {
 // تسجيل Service Worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('firebase-messaging-sw.js')
-        .then((registration) => {
-            console.log('تم تسجيل Service Worker بنجاح:', registration);
-        })
-        .catch((err) => {
-            console.error('فشل تسجيل Service Worker:', err);
-        });
+    .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+    })
+    .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+    });
 }
 
 // تحميل الأسماء من Firestore إلى القائمة المنسدلة (صفحة تسجيل الدخول)

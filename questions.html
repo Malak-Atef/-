@@ -82,34 +82,49 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // دالة لتحميل الأسئلة من Firestore
-        async function loadQuestions() {
-            const questionsRef = collection(db, "questions");
-            const questionsSnap = await getDocs(questionsRef);
-            const questionsContainer = document.getElementById("questionsContainer");
+              
+// دالة لتحميل الأسئلة من Firestore
+async function loadQuestions() {
+    const questionsRef = collection(db, "questions");
+    const questionsSnap = await getDocs(questionsRef);
+    const questionsContainer = document.getElementById("questionsContainer");
 
-            // حصر الأسئلة لثلاثة فقط
-            let count = 0;
-            questionsSnap.forEach(doc => {
-                if (count < 3) {
-                    const questionData = doc.data();
-                    const questionDiv = document.createElement("div");
-                    questionDiv.className = "question";
+    const allQuestions = [];
 
-                    // إضافة حقل إدخال للإجابة
-                    questionDiv.innerHTML = `
-                        <p>${questionData.question}</p>
-                        <input type="text" class="form-control" data-question-id="${doc.id}" placeholder="اكتب إجابتك هنا" required>
-                    `;
-                    questionsContainer.appendChild(questionDiv);
-                    count++;
-                }
-            });
+    // إضافة جميع الأسئلة من قاعدة البيانات إلى مصفوفة
+    questionsSnap.forEach(doc => {
+        allQuestions.push({ id: doc.id, ...doc.data() });
+    });
 
-            if (count === 0) {
-                questionsContainer.innerHTML = "لا توجد أسئلة متاحة.";
+    // التحقق من وجود 7 أسئلة على الأقل
+    if (allQuestions.length >= 3) {
+        // اختيار 3 أسئلة عشوائية
+        const selectedQuestions = [];
+        while (selectedQuestions.length < 3) {
+            const randomIndex = Math.floor(Math.random() * allQuestions.length);
+            const question = allQuestions[randomIndex];
+            
+            // التأكد من عدم تكرار السؤال
+            if (!selectedQuestions.includes(question)) {
+                selectedQuestions.push(question);
             }
         }
+
+        // عرض الأسئلة المختارة في الواجهة
+        selectedQuestions.forEach(questionData => {
+            const questionDiv = document.createElement("div");
+            questionDiv.className = "question";
+            questionDiv.innerHTML = `
+                <p>${questionData.question}</p>
+                <input type="text" class="form-control" data-question-id="${questionData.id}" placeholder="اكتب إجابتك هنا" required>
+            `;
+            questionsContainer.appendChild(questionDiv);
+        });
+    } else {
+        questionsContainer.innerHTML = "لا توجد أسئلة كافية متاحة.";
+    }
+}
+
 
         // دالة تسجيل الخروج
         document.getElementById("logoutBtn").addEventListener("click", () => {
